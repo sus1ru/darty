@@ -8,6 +8,20 @@ export default function App() {
   const [dark, setDark] = useState(true);
   const currentPlayer = state.players[state.currentPlayer];
   const canEditStartingScore = state.status !== "playing";
+  const canUndo = state.undoStack.length > 0;
+  const winnerIndex = state.players.findIndex((p) => p.legs >= state.legsToWin);
+  const isDraw = false;
+  const runnerUp =
+    winnerIndex >= 0 ? state.players[1 - winnerIndex] : state.players[1];
+  const recentHits = state.hitHistory
+    .flatMap((history, playerIndex) =>
+      history.map((hit) => ({
+        ...hit,
+        playerName: state.players[playerIndex].name,
+      }))
+    )
+    .sort((a, b) => b.id - a.id)
+    .slice(0, 8);
   const theme = {
     header: dark
       ? "border-white/10 bg-white/[0.04] shadow-black/20"
@@ -39,6 +53,14 @@ export default function App() {
       ? "border-rose-200/25 bg-rose-200/10 text-rose-100 hover:border-rose-200/60 hover:bg-rose-200/20"
       : "border-rose-900/15 bg-rose-50 text-rose-800 hover:border-rose-700/40 hover:bg-rose-100",
   };
+  const getHitLabel = (hit) => {
+    if (hit.type === "MISS") return "Miss";
+    if (hit.type === "OB") return "Outer bull";
+    if (hit.type === "D" && hit.score === 50) return "Bull";
+    if (hit.type === "D") return `D${hit.score / 2}`;
+    if (hit.type === "T") return `T${hit.score / 3}`;
+    return `S${hit.score}`;
+  };
 
   return (
     <div
@@ -68,37 +90,57 @@ export default function App() {
           </button>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2">
-          {state.players.map((p, i) => (
-            <div
-              key={i}
-              className={`rounded-lg border p-5 shadow-xl transition duration-500 ${
-                state.currentPlayer === i
-                  ? `scale-[1.01] ${theme.activeCard}`
-                  : theme.card
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className={`text-lg font-semibold ${theme.title}`}>
-                    {p.name}
-                  </h2>
-                  <p className={`mt-1 text-sm ${theme.muted}`}>
-                    Legs won: {p.legs}
+        <section className="grid flex-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)_320px] lg:items-start">
+          <div className="space-y-4 lg:sticky lg:top-5">
+            {state.players.map((p, i) => (
+              <div
+                key={i}
+                className={`rounded-lg border p-5 shadow-xl transition duration-500 ${
+                  state.currentPlayer === i
+                    ? `scale-[1.01] ${theme.activeCard}`
+                    : theme.card
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className={`text-lg font-semibold ${theme.title}`}>
+                      {p.name}
+                    </h2>
+                    <p className={`mt-1 text-sm ${theme.muted}`}>
+                      Legs won: {p.legs}
+                    </p>
+                  </div>
+                  <p className={`rounded-md border px-3 py-1 text-sm font-semibold ${theme.chip}`}>
+                    P{i + 1}
                   </p>
                 </div>
-                <p className={`rounded-md border px-3 py-1 text-sm font-semibold ${theme.chip}`}>
-                  Player {i + 1}
+                <p className={`mt-5 text-6xl font-black leading-none tracking-normal drop-shadow-lg ${theme.title}`}>
+                  {p.score}
                 </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {(state.hitHistory[i] || []).slice(0, 4).map((hit) => (
+                    <span
+                      key={hit.id}
+                      className={`rounded-md px-2.5 py-1 text-xs font-bold ${
+                        hit.result === "Bust"
+                          ? dark
+                            ? "bg-rose-300/15 text-rose-100"
+                            : "bg-rose-100 text-rose-800"
+                          : hit.result === "Checkout"
+                            ? dark
+                              ? "bg-emerald-300/20 text-emerald-100"
+                              : "bg-emerald-100 text-emerald-800"
+                            : theme.row
+                      }`}
+                    >
+                      {getHitLabel(hit)} - {hit.score}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <p className={`mt-5 text-6xl font-black leading-none tracking-normal drop-shadow-lg ${theme.title}`}>
-                {p.score}
-              </p>
-            </div>
-          ))}
-        </section>
+            ))}
+          </div>
 
-        <section className="grid flex-1 gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
           <div
             className={`rounded-lg border p-4 shadow-2xl backdrop-blur sm:p-6 ${theme.panel}`}
           >
@@ -145,21 +187,30 @@ export default function App() {
                     dispatch({ type: "THROW", payload: { score, type } })
                   }
                 />
-                <button
-                  onClick={() =>
-                    dispatch({
-                      type: "THROW",
-                      payload: { score: 0, type: "MISS" },
-                    })
-                  }
-                  className={`rounded-md border px-5 py-2.5 font-semibold transition duration-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200 ${
-                    dark
-                      ? "border-amber-200/30 bg-amber-200/10 text-amber-100 hover:border-amber-200/70 hover:bg-amber-200/20"
-                      : "border-amber-800/20 bg-amber-50 text-amber-800 hover:border-amber-700/40 hover:bg-amber-100"
-                  }`}
-                >
-                  Miss / No score
-                </button>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button
+                    onClick={() =>
+                      dispatch({
+                        type: "THROW",
+                        payload: { score: 0, type: "MISS" },
+                      })
+                    }
+                    className={`rounded-md border px-5 py-2.5 font-semibold transition duration-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200 ${
+                      dark
+                        ? "border-amber-200/30 bg-amber-200/10 text-amber-100 hover:border-amber-200/70 hover:bg-amber-200/20"
+                        : "border-amber-800/20 bg-amber-50 text-amber-800 hover:border-amber-700/40 hover:bg-amber-100"
+                    }`}
+                  >
+                    Miss / No score
+                  </button>
+                  <button
+                    onClick={() => dispatch({ type: "UNDO" })}
+                    disabled={!canUndo}
+                    className={`rounded-md border px-5 py-2.5 font-semibold transition duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${theme.subtleButton}`}
+                  >
+                    Undo last dart
+                  </button>
+                </div>
               </div>
             )}
 
@@ -247,6 +298,49 @@ export default function App() {
                 </span>
               </div>
             </div>
+            <p className={`mt-6 text-sm font-semibold uppercase tracking-[0.2em] ${theme.muted}`}>
+              Hit history
+            </p>
+            <div className={`mt-4 max-h-72 overflow-y-auto rounded-md ${theme.row}`}>
+              {recentHits.length === 0 ? (
+                <p className={`px-4 py-3 text-sm ${theme.muted}`}>
+                  No throws recorded yet.
+                </p>
+              ) : (
+                <div className="divide-y divide-white/10">
+                  {recentHits.map((hit) => (
+                    <div
+                      key={hit.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
+                      <div>
+                        <p className={`text-sm font-semibold ${theme.title}`}>
+                          {hit.playerName}
+                        </p>
+                        <p className={`text-xs ${theme.muted}`}>
+                          Leg {hit.leg} - {hit.result}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-black ${theme.accentText}`}>
+                          {getHitLabel(hit)}
+                        </p>
+                        <p className={`text-xs ${theme.muted}`}>
+                          {hit.from} to {hit.remaining}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => dispatch({ type: "UNDO" })}
+              disabled={!canUndo}
+              className={`mt-5 w-full rounded-md border px-4 py-2.5 font-semibold transition duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${theme.subtleButton}`}
+            >
+              Undo Last Dart
+            </button>
             <button
               onClick={() => dispatch({ type: "RESET" })}
               className={`mt-5 w-full rounded-md border px-4 py-2.5 font-semibold transition duration-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-200 ${theme.dangerButton}`}
@@ -256,6 +350,55 @@ export default function App() {
           </aside>
         </section>
       </main>
+
+      {state.status === "finished" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+          <div
+            className={`animate-soft-rise w-full max-w-md rounded-lg border p-6 text-center shadow-2xl ${
+              dark
+                ? "border-emerald-300/30 bg-[#0b1714] shadow-black/50"
+                : "border-emerald-900/10 bg-white shadow-emerald-950/20"
+            }`}
+          >
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-500">
+              Match complete
+            </p>
+            <h2 className={`mt-3 text-4xl font-black ${theme.title}`}>
+              {isDraw ? "Match drawn" : `${state.winner} wins`}
+            </h2>
+            <p className={`mt-3 ${theme.muted}`}>
+              {isDraw
+                ? "This x01 format does not normally end in a draw."
+                : `${runnerUp?.name} finishes with ${runnerUp?.legs} legs. No draw in first-to-${state.legsToWin} double-out darts.`}
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              {state.players.map((player, index) => (
+                <div key={index} className={`rounded-md p-3 ${theme.row}`}>
+                  <p className={`text-sm font-semibold ${theme.title}`}>
+                    {player.name}
+                  </p>
+                  <p className={`mt-1 text-2xl font-black ${theme.accentText}`}>
+                    {player.legs}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => dispatch({ type: "UNDO" })}
+              disabled={!canUndo}
+              className={`mt-6 w-full rounded-md border px-5 py-3 font-bold transition duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${theme.subtleButton}`}
+            >
+              Undo Winning Dart
+            </button>
+            <button
+              onClick={() => dispatch({ type: "RESET" })}
+              className="mt-3 w-full rounded-md bg-emerald-300 px-5 py-3 font-bold text-emerald-950 shadow-xl shadow-emerald-950/30 transition duration-300 hover:-translate-y-0.5 hover:bg-emerald-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
+            >
+              New Match
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

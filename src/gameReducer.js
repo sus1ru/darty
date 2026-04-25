@@ -7,15 +7,36 @@ export const initialState = {
     { name: "Player 1", score: 501, legs: 0 },
     { name: "Player 2", score: 501, legs: 0 },
   ],
+  hitHistory: [[], []],
+  undoStack: [],
   startingScore: 501,
   currentPlayer: 0,
   legStarter: 0,
+  currentLeg: 1,
+  throwId: 1,
   throwsLeft: 3,
   turnStartScore: 501,
   status: "setup",
   winner: null,
   legsToWin: 3,
 };
+
+function createUndoSnapshot(state) {
+  return {
+    players: state.players,
+    hitHistory: state.hitHistory,
+    startingScore: state.startingScore,
+    currentPlayer: state.currentPlayer,
+    legStarter: state.legStarter,
+    currentLeg: state.currentLeg,
+    throwId: state.throwId,
+    throwsLeft: state.throwsLeft,
+    turnStartScore: state.turnStartScore,
+    status: state.status,
+    winner: state.winner,
+    legsToWin: state.legsToWin,
+  };
+}
 
 export function reducer(state, action) {
   switch (action.type) {
@@ -38,9 +59,18 @@ export function reducer(state, action) {
         players: state.players.map((p) => ({
           ...p,
           score: action.payload.score,
+          legs: 0,
         })),
+        hitHistory: [[], []],
+        undoStack: [],
+        currentPlayer: 0,
+        legStarter: 0,
+        currentLeg: 1,
+        throwId: 1,
         throwsLeft: 3,
         turnStartScore: action.payload.score,
+        status: "setup",
+        winner: null,
       };
     }
 
@@ -58,16 +88,49 @@ export function reducer(state, action) {
         winner: null,
       };
 
+    case "UNDO": {
+      if (state.undoStack.length === 0) return state;
+
+      const [previousState, ...undoStack] = state.undoStack;
+
+      return {
+        ...previousState,
+        players: previousState.players.map((player, i) => ({
+          ...player,
+          name: state.players[i].name,
+        })),
+        undoStack,
+      };
+    }
+
     case "THROW": {
       if (state.status !== "playing") return state;
 
+      const undoStack = [createUndoSnapshot(state), ...state.undoStack];
       const player = state.players[state.currentPlayer];
       const newScore = player.score - action.payload.score;
       const isDouble = action.payload.type === "D";
+      const isBust =
+        newScore < 0 || newScore === 1 || (newScore === 0 && !isDouble);
+      const hit = {
+        id: state.throwId,
+        leg: state.currentLeg,
+        score: action.payload.score,
+        type: action.payload.type,
+        from: player.score,
+        remaining: isBust ? state.turnStartScore : newScore,
+        result: isBust ? "Bust" : newScore === 0 ? "Checkout" : "Hit",
+      };
+      const hitHistory = state.hitHistory.map((history, i) =>
+        i === state.currentPlayer ? [hit, ...history] : history
+      );
 
-      if (newScore < 0 || newScore === 1 || (newScore === 0 && !isDouble)) {
+      if (isBust) {
         return {
           ...state,
+          hitHistory,
+          undoStack,
+          throwId: state.throwId + 1,
           players: state.players.map((p, i) =>
             i === state.currentPlayer
               ? { ...p, score: state.turnStartScore }
@@ -89,9 +152,13 @@ export function reducer(state, action) {
         return {
           ...state,
           players: updatedPlayers,
+          hitHistory,
+          undoStack,
+          throwId: state.throwId + 1,
           status: winner ? "finished" : "setup",
           winner: winner ? winner.name : null,
           legStarter: winner ? state.legStarter : 1 - state.legStarter,
+          currentLeg: winner ? state.currentLeg : state.currentLeg + 1,
           throwsLeft: 3,
           turnStartScore: state.startingScore,
         };
@@ -107,6 +174,9 @@ export function reducer(state, action) {
         return {
           ...state,
           players: updatedPlayers,
+          hitHistory,
+          undoStack,
+          throwId: state.throwId + 1,
           currentPlayer: 1 - state.currentPlayer,
           throwsLeft: 3,
           turnStartScore: updatedPlayers[1 - state.currentPlayer].score,
@@ -116,6 +186,9 @@ export function reducer(state, action) {
       return {
         ...state,
         players: updatedPlayers,
+        hitHistory,
+        undoStack,
+        throwId: state.throwId + 1,
         throwsLeft: nextThrows,
       };
     }
