@@ -18,6 +18,7 @@ export const initialState = {
   turnStartScore: 501,
   status: "setup",
   winner: null,
+  legResult: null,
   legsToWin: 3,
 };
 
@@ -34,6 +35,7 @@ function createUndoSnapshot(state) {
     turnStartScore: state.turnStartScore,
     status: state.status,
     winner: state.winner,
+    legResult: state.legResult,
     legsToWin: state.legsToWin,
   };
 }
@@ -71,6 +73,7 @@ export function reducer(state, action) {
         turnStartScore: action.payload.score,
         status: "setup",
         winner: null,
+        legResult: null,
       };
     }
 
@@ -86,10 +89,17 @@ export function reducer(state, action) {
         turnStartScore: state.startingScore,
         status: "playing",
         winner: null,
+        legResult: null,
       };
 
     case "UNDO": {
       if (state.undoStack.length === 0) return state;
+      if (
+        action.payload?.expectedThrowId &&
+        action.payload.expectedThrowId !== state.undoStack[0].throwId
+      ) {
+        return state;
+      }
 
       const [previousState, ...undoStack] = state.undoStack;
 
@@ -148,6 +158,13 @@ export function reducer(state, action) {
         );
 
         const winner = updatedPlayers.find((p) => p.legs >= state.legsToWin);
+        const legResult = {
+          type: "win",
+          leg: state.currentLeg,
+          playerIndex: state.currentPlayer,
+          playerName: player.name,
+          checkout: action.payload.score,
+        };
 
         return {
           ...state,
@@ -157,6 +174,7 @@ export function reducer(state, action) {
           throwId: state.throwId + 1,
           status: winner ? "finished" : "setup",
           winner: winner ? winner.name : null,
+          legResult: winner ? null : legResult,
           legStarter: winner ? state.legStarter : 1 - state.legStarter,
           currentLeg: winner ? state.currentLeg : state.currentLeg + 1,
           throwsLeft: 3,

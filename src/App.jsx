@@ -9,19 +9,12 @@ export default function App() {
   const currentPlayer = state.players[state.currentPlayer];
   const canEditStartingScore = state.status !== "playing";
   const canUndo = state.undoStack.length > 0;
+  const undoPayload = { expectedThrowId: state.undoStack[0]?.throwId };
+  const legResult = state.legResult;
   const winnerIndex = state.players.findIndex((p) => p.legs >= state.legsToWin);
   const isDraw = false;
   const runnerUp =
     winnerIndex >= 0 ? state.players[1 - winnerIndex] : state.players[1];
-  const recentHits = state.hitHistory
-    .flatMap((history, playerIndex) =>
-      history.map((hit) => ({
-        ...hit,
-        playerName: state.players[playerIndex].name,
-      }))
-    )
-    .sort((a, b) => b.id - a.id)
-    .slice(0, 8);
   const theme = {
     header: dark
       ? "border-white/10 bg-white/[0.04] shadow-black/20"
@@ -90,7 +83,7 @@ export default function App() {
           </button>
         </header>
 
-        <section className="grid flex-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)_320px] lg:items-start">
+        <section className="grid flex-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)_300px] lg:items-start">
           <div className="space-y-4 lg:sticky lg:top-5">
             {state.players.map((p, i) => (
               <div
@@ -117,25 +110,36 @@ export default function App() {
                 <p className={`mt-5 text-6xl font-black leading-none tracking-normal drop-shadow-lg ${theme.title}`}>
                   {p.score}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {(state.hitHistory[i] || []).slice(0, 4).map((hit) => (
-                    <span
-                      key={hit.id}
-                      className={`rounded-md px-2.5 py-1 text-xs font-bold ${
-                        hit.result === "Bust"
-                          ? dark
-                            ? "bg-rose-300/15 text-rose-100"
-                            : "bg-rose-100 text-rose-800"
-                          : hit.result === "Checkout"
-                            ? dark
-                              ? "bg-emerald-300/20 text-emerald-100"
-                              : "bg-emerald-100 text-emerald-800"
-                            : theme.row
-                      }`}
-                    >
-                      {getHitLabel(hit)} - {hit.score}
-                    </span>
-                  ))}
+                <div className="mt-4">
+                  <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${theme.muted}`}>
+                    Last 3 darts
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(state.hitHistory[i] || []).slice(0, 3).length === 0 ? (
+                      <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${theme.muted}`}>
+                        No darts yet
+                      </span>
+                    ) : (
+                      (state.hitHistory[i] || []).slice(0, 3).map((hit) => (
+                        <span
+                          key={hit.id}
+                          className={`rounded-md px-2.5 py-1 text-xs font-bold ${
+                            hit.result === "Bust"
+                              ? dark
+                                ? "bg-rose-300/15 text-rose-100"
+                                : "bg-rose-100 text-rose-800"
+                              : hit.result === "Checkout"
+                                ? dark
+                                  ? "bg-emerald-300/20 text-emerald-100"
+                                  : "bg-emerald-100 text-emerald-800"
+                                : theme.row
+                          }`}
+                        >
+                          {getHitLabel(hit)} - {hit.score}
+                        </span>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -204,7 +208,9 @@ export default function App() {
                     Miss / No score
                   </button>
                   <button
-                    onClick={() => dispatch({ type: "UNDO" })}
+                    onClick={() =>
+                      dispatch({ type: "UNDO", payload: undoPayload })
+                    }
                     disabled={!canUndo}
                     className={`rounded-md border px-5 py-2.5 font-semibold transition duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${theme.subtleButton}`}
                   >
@@ -273,6 +279,7 @@ export default function App() {
                   <option value={301}>301</option>
                   <option value={501}>501</option>
                   <option value={701}>701</option>
+                  <option value={1001}>1001</option>
                 </select>
               </label>
             </div>
@@ -298,44 +305,8 @@ export default function App() {
                 </span>
               </div>
             </div>
-            <p className={`mt-6 text-sm font-semibold uppercase tracking-[0.2em] ${theme.muted}`}>
-              Hit history
-            </p>
-            <div className={`mt-4 max-h-72 overflow-y-auto rounded-md ${theme.row}`}>
-              {recentHits.length === 0 ? (
-                <p className={`px-4 py-3 text-sm ${theme.muted}`}>
-                  No throws recorded yet.
-                </p>
-              ) : (
-                <div className="divide-y divide-white/10">
-                  {recentHits.map((hit) => (
-                    <div
-                      key={hit.id}
-                      className="flex items-center justify-between gap-3 px-4 py-3"
-                    >
-                      <div>
-                        <p className={`text-sm font-semibold ${theme.title}`}>
-                          {hit.playerName}
-                        </p>
-                        <p className={`text-xs ${theme.muted}`}>
-                          Leg {hit.leg} - {hit.result}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-sm font-black ${theme.accentText}`}>
-                          {getHitLabel(hit)}
-                        </p>
-                        <p className={`text-xs ${theme.muted}`}>
-                          {hit.from} to {hit.remaining}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
             <button
-              onClick={() => dispatch({ type: "UNDO" })}
+              onClick={() => dispatch({ type: "UNDO", payload: undoPayload })}
               disabled={!canUndo}
               className={`mt-5 w-full rounded-md border px-4 py-2.5 font-semibold transition duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${theme.subtleButton}`}
             >
@@ -350,6 +321,57 @@ export default function App() {
           </aside>
         </section>
       </main>
+
+      {state.status === "setup" && legResult && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+          <div
+            className={`animate-soft-rise w-full max-w-md rounded-lg border p-6 text-center shadow-2xl ${
+              dark
+                ? "border-emerald-300/30 bg-[#0b1714] shadow-black/50"
+                : "border-emerald-900/10 bg-white shadow-emerald-950/20"
+            }`}
+          >
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-500">
+              Leg {legResult.leg} complete
+            </p>
+            <h2 className={`mt-3 text-4xl font-black ${theme.title}`}>
+              {legResult.type === "draw"
+                ? "Leg drawn"
+                : `${legResult.playerName} wins the leg`}
+            </h2>
+            <p className={`mt-3 ${theme.muted}`}>
+              {legResult.type === "draw"
+                ? "A normal x01 leg cannot draw because one player must checkout first."
+                : `${legResult.playerName} checked out ${legResult.checkout} and now has ${state.players[legResult.playerIndex].legs} legs.`}
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              {state.players.map((player, index) => (
+                <div key={index} className={`rounded-md p-3 ${theme.row}`}>
+                  <p className={`text-sm font-semibold ${theme.title}`}>
+                    {player.name}
+                  </p>
+                  <p className={`mt-1 text-2xl font-black ${theme.accentText}`}>
+                    {player.legs}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => dispatch({ type: "START" })}
+              className="mt-6 w-full rounded-md bg-emerald-300 px-5 py-3 font-bold text-emerald-950 shadow-xl shadow-emerald-950/30 transition duration-300 hover:-translate-y-0.5 hover:bg-emerald-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
+            >
+              Start Next Leg
+            </button>
+            <button
+              onClick={() => dispatch({ type: "UNDO", payload: undoPayload })}
+              disabled={!canUndo}
+              className={`mt-3 w-full rounded-md border px-5 py-3 font-bold transition duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${theme.subtleButton}`}
+            >
+              Undo Checkout
+            </button>
+          </div>
+        </div>
+      )}
 
       {state.status === "finished" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
@@ -384,7 +406,7 @@ export default function App() {
               ))}
             </div>
             <button
-              onClick={() => dispatch({ type: "UNDO" })}
+              onClick={() => dispatch({ type: "UNDO", payload: undoPayload })}
               disabled={!canUndo}
               className={`mt-6 w-full rounded-md border px-5 py-3 font-bold transition duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${theme.subtleButton}`}
             >
