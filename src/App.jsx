@@ -1,7 +1,9 @@
 import { useReducer, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import Dartboard from "./components/Dartboard";
 import { reducer, initialState } from "./gameReducer";
 import "./App.css";
+
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -63,6 +65,52 @@ export default function App() {
           : "min-h-screen bg-[#eef3ef] text-slate-950"
       }
     >
+      <Helmet>
+        {/* Dynamic title based on game state */}
+        <title>
+          {state.status === "finished"
+            ? `🏆 ${state.winner} wins! – Darty`
+            : state.status === "playing"
+              ? `🎯 ${currentPlayer.name}'s turn (${currentPlayer.score} left) – Darty`
+              : "Darty – Dart Game Score Calculator"}
+        </title>
+
+        {/* Description */}
+        <meta
+          name="description"
+          content="Darty is a free, real-time dart game score calculator for 301, 501, 701 and 1001 x01 double-out formats. Track legs, undo throws, and play in dark or light mode."
+        />
+
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://darty.app/" />
+        <meta property="og:site_name" content="Darty" />
+        <meta property="og:title" content="Darty – Dart Game Score Calculator" />
+        <meta
+          property="og:description"
+          content="Track every throw in real time. 301 / 501 / 701 / 1001 double-out x01 darts scorer with leg tracking, undo, and dark mode."
+        />
+        <meta property="og:image" content="https://darty.app/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:locale" content="en_US" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Darty – Dart Game Score Calculator" />
+        <meta
+          name="twitter:description"
+          content="Track every throw in real time. 301 / 501 / 701 / 1001 double-out x01 darts scorer with leg tracking, undo, and dark mode."
+        />
+        <meta name="twitter:image" content="https://darty.app/og-image.png" />
+
+        {/* Canonical */}
+        <link rel="canonical" href="https://darty.app/" />
+
+        {/* Theme color synced with dark/light mode */}
+        <meta name="theme-color" content={dark ? "#07110f" : "#eef3ef"} />
+      </Helmet>
+
       <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
         <header
           className={`flex flex-col gap-4 rounded-lg border p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between ${theme.header}`}

@@ -1,0 +1,19 @@
+{
+  "name": "Darty – Dart Game Score Calculator",
+  "short_name": "Darty",
+  "description": "Real-time dart game score calculator for 301, 501, 701 and 1001 x01 double-out formats.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07110f",
+  "theme_color": "#07110f",
+  "lang": "en",
+  "categories": ["sports", "games"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
