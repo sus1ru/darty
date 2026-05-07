@@ -4,7 +4,6 @@ import Dartboard from "./components/Dartboard";
 import { reducer, initialState } from "./gameReducer";
 import "./App.css";
 
-
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [dark, setDark] = useState(true);
@@ -56,6 +55,7 @@ export default function App() {
     if (hit.type === "T") return `T${hit.score / 3}`;
     return `S${hit.score}`;
   };
+  const currentYear = new Date().getFullYear();
 
   return (
     <div
@@ -85,7 +85,10 @@ export default function App() {
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://darty.app/" />
         <meta property="og:site_name" content="Darty" />
-        <meta property="og:title" content="Darty – Dart Game Score Calculator" />
+        <meta
+          property="og:title"
+          content="Darty – Dart Game Score Calculator"
+        />
         <meta
           property="og:description"
           content="Track every throw in real time. 301 / 501 / 701 / 1001 double-out x01 darts scorer with leg tracking, undo, and dark mode."
@@ -97,7 +100,10 @@ export default function App() {
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Darty – Dart Game Score Calculator" />
+        <meta
+          name="twitter:title"
+          content="Darty – Dart Game Score Calculator"
+        />
         <meta
           name="twitter:description"
           content="Track every throw in real time. 301 / 501 / 701 / 1001 double-out x01 darts scorer with leg tracking, undo, and dark mode."
@@ -119,7 +125,9 @@ export default function App() {
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-500">
               {state.startingScore} double out
             </p>
-            <h1 className={`mt-1 text-3xl font-bold tracking-normal ${theme.title}`}>
+            <h1
+              className={`mt-1 text-3xl font-bold tracking-normal ${theme.title}`}
+            >
               Dart Tournament
             </h1>
           </div>
@@ -151,20 +159,28 @@ export default function App() {
                       Legs won: {p.legs}
                     </p>
                   </div>
-                  <p className={`rounded-md border px-3 py-1 text-sm font-semibold ${theme.chip}`}>
+                  <p
+                    className={`rounded-md border px-3 py-1 text-sm font-semibold ${theme.chip}`}
+                  >
                     P{i + 1}
                   </p>
                 </div>
-                <p className={`mt-5 text-6xl font-black leading-none tracking-normal drop-shadow-lg ${theme.title}`}>
+                <p
+                  className={`mt-5 text-6xl font-black leading-none tracking-normal drop-shadow-lg ${theme.title}`}
+                >
                   {p.score}
                 </p>
                 <div className="mt-4">
-                  <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${theme.muted}`}>
+                  <p
+                    className={`text-xs font-semibold uppercase tracking-[0.18em] ${theme.muted}`}
+                  >
                     Last 3 darts
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {(state.hitHistory[i] || []).slice(0, 3).length === 0 ? (
-                      <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${theme.muted}`}>
+                      <span
+                        className={`rounded-md px-2.5 py-1 text-xs font-semibold ${theme.muted}`}
+                      >
                         No darts yet
                       </span>
                     ) : (
@@ -271,7 +287,9 @@ export default function App() {
             {state.status === "finished" && (
               <div className="flex min-h-[520px] items-center justify-center rounded-lg border border-emerald-300/30 bg-emerald-300/10 text-center">
                 <div>
-                  <p className={`text-sm font-semibold uppercase tracking-[0.24em] ${theme.accentText}`}>
+                  <p
+                    className={`text-sm font-semibold uppercase tracking-[0.24em] ${theme.accentText}`}
+                  >
                     Match winner
                   </p>
                   <p className={`mt-3 text-4xl font-black ${theme.title}`}>
@@ -283,13 +301,17 @@ export default function App() {
           </div>
 
           <aside className={`rounded-lg border p-5 shadow-xl ${theme.header}`}>
-            <p className={`text-sm font-semibold uppercase tracking-[0.2em] ${theme.muted}`}>
+            <p
+              className={`text-sm font-semibold uppercase tracking-[0.2em] ${theme.muted}`}
+            >
               Setup
             </p>
             <div className="mt-4 space-y-3">
               {state.players.map((player, index) => (
                 <label key={index} className="block">
-                  <span className={`mb-1 block text-sm font-medium ${theme.muted}`}>
+                  <span
+                    className={`mb-1 block text-sm font-medium ${theme.muted}`}
+                  >
                     Player {index + 1} name
                   </span>
                   <input
@@ -310,7 +332,9 @@ export default function App() {
               ))}
 
               <label className="block">
-                <span className={`mb-1 block text-sm font-medium ${theme.muted}`}>
+                <span
+                  className={`mb-1 block text-sm font-medium ${theme.muted}`}
+                >
                   Starting score
                 </span>
                 <select
@@ -332,21 +356,31 @@ export default function App() {
               </label>
             </div>
 
-            <p className={`mt-6 text-sm font-semibold uppercase tracking-[0.2em] ${theme.muted}`}>
+            <p
+              className={`mt-6 text-sm font-semibold uppercase tracking-[0.2em] ${theme.muted}`}
+            >
               Match
             </p>
             <div className="mt-4 space-y-3">
-              <div className={`flex justify-between rounded-md px-4 py-3 ${theme.row}`}>
+              <div
+                className={`flex justify-between rounded-md px-4 py-3 ${theme.row}`}
+              >
                 <span className={theme.muted}>Legs to win</span>
-                <span className={`font-bold ${theme.title}`}>{state.legsToWin}</span>
+                <span className={`font-bold ${theme.title}`}>
+                  {state.legsToWin}
+                </span>
               </div>
-              <div className={`flex justify-between rounded-md px-4 py-3 ${theme.row}`}>
+              <div
+                className={`flex justify-between rounded-md px-4 py-3 ${theme.row}`}
+              >
                 <span className={theme.muted}>Starting score</span>
                 <span className={`font-bold ${theme.title}`}>
                   {state.startingScore}
                 </span>
               </div>
-              <div className={`flex justify-between rounded-md px-4 py-3 ${theme.row}`}>
+              <div
+                className={`flex justify-between rounded-md px-4 py-3 ${theme.row}`}
+              >
                 <span className={theme.muted}>Throws left</span>
                 <span className={`font-bold ${theme.accentText}`}>
                   {state.throwsLeft}
@@ -368,6 +402,12 @@ export default function App() {
             </button>
           </aside>
         </section>
+
+        <footer
+          className={`border-t pt-4 text-center text-sm ${dark ? "border-white/10 text-slate-400" : "border-emerald-950/10 text-slate-600"}`}
+        >
+          © {currentYear} Darty. All rights reserved.
+        </footer>
       </main>
 
       {state.status === "setup" && legResult && (
